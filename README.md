@@ -7,6 +7,6 @@ You have full access to all header pins (40 pins) on the Web interface.
 ------
 $ tar xvzf WebIOPi-0.7.1.tar.gz  
 $ cd WebIOPi-0.7.1  
-$ wget https://raw.githubusercontent.com/doublebind/raspi/webiopi-pi2bplus.patch  
+$ wget https://raw.githubusercontent.com/doublebind/raspi/master/webiopi-pi2bplus.patch 
 $ patch -p1 -i webiopi-pi2bplus.patch  
 $ sudo ./setup.sh  
