@@ -1,0 +1,144 @@
+diff -ur WebIOPi-0.7.1/htdocs/webiopi.js WebIOPi-Pi2/htdocs/webiopi.js
+--- WebIOPi-0.7.1/htdocs/webiopi.js	2014-02-24 01:37:07.000000000 +0900
++++ WebIOPi-Pi2/htdocs/webiopi.js	2015-06-26 15:53:13.812134121 +0900
+@@ -73,7 +73,7 @@
+ 	this.readyCallback = null;
+ 	this.context = "/";
+ 	this.GPIO = Array(54);
+-	this.PINS = Array(27);
++	this.PINS = Array(41);
+ 
+ 	this.TYPE = {
+ 			DNC: {value: 0, style: "DNC", label: "--"},
+@@ -577,7 +577,7 @@
+ RPiHeader.prototype.createTable = function (containerId) {
+ 	var table = $("<table>");
+ 	table.attr("id", "RPiHeader")
+-	for (var pin=1; pin<=26; pin++) {
++	for (var pin=1; pin<=40; pin++) {
+ 		var line = 	$('<tr>');
+ 		line.append(this.getFunctionCell(pin))
+ 		line.append(this.getDescriptionCell(pin, "right"))
+diff -ur WebIOPi-0.7.1/python/native/cpuinfo.c WebIOPi-Pi2/python/native/cpuinfo.c
+--- WebIOPi-0.7.1/python/native/cpuinfo.c	2012-10-29 06:26:10.000000000 +0900
++++ WebIOPi-Pi2/python/native/cpuinfo.c	2015-06-26 16:10:24.893330537 +0900
+@@ -39,6 +39,8 @@
+       sscanf(buffer, "Hardware	: %s", hardware);
+       if (strcmp(hardware, "BCM2708") == 0)
+          rpi_found = 1;
++      else if (strcmp(hardware, "BCM2709") == 0)
++         rpi_found = 1;
+       sscanf(buffer, "Revision	: %s", revision);
+    }
+    fclose(fp);
+@@ -60,6 +62,16 @@
+        (strcmp(revision, "0003") == 0) ||
+        (strcmp(revision, "1000003") == 0 ))
+       return 1;
+-   else // assume rev 2 (0004 0005 0006 1000004 1000005 1000006)
++   else if ((strcmp(revision, "0004") == 0) ||
++            (strcmp(revision, "1000004") == 0 ) ||
++            (strcmp(revision, "0005") == 0) ||
++            (strcmp(revision, "1000005") == 0 ) ||
++            (strcmp(revision, "0006") == 0) ||
++            (strcmp(revision, "1000006") == 0 ))
+       return 2;
++   else if ((strcmp(revision, "a01041") == 0) ||
++            (strcmp(revision, "a21041") == 0 ))
++      return 3;
++   else // assume rev 4
++      return 4;
+ }
+diff -ur WebIOPi-0.7.1/python/native/gpio.c WebIOPi-Pi2/python/native/gpio.c
+--- WebIOPi-0.7.1/python/native/gpio.c	2013-02-04 07:04:18.000000000 +0900
++++ WebIOPi-Pi2/python/native/gpio.c	2015-06-26 18:25:43.873270911 +0900
+@@ -20,6 +20,7 @@
+ SOFTWARE.
+ */
+ 
++#include <stdio.h>
+ #include <stdint.h>
+ #include <stdlib.h>
+ #include <string.h>
+@@ -28,9 +29,12 @@
+ #include <time.h>
+ #include <pthread.h>
+ #include "gpio.h"
++#include "cpuinfo.h"
+ 
+ #define BCM2708_PERI_BASE   0x20000000
+-#define GPIO_BASE           (BCM2708_PERI_BASE + 0x200000)
++#define BCM2708_GPIO_BASE   (BCM2708_PERI_BASE + 0x200000)
++#define BCM2709_PERI_BASE   0x3F000000
++#define BCM2709_GPIO_BASE   (BCM2709_PERI_BASE + 0x200000)
+ #define FSEL_OFFSET         0   // 0x0000
+ #define SET_OFFSET          7   // 0x001c / 4
+ #define CLR_OFFSET          10  // 0x0028 / 4
+@@ -83,7 +87,10 @@
+     if ((uint32_t)gpio_mem % PAGE_SIZE)
+         gpio_mem += PAGE_SIZE - ((uint32_t)gpio_mem % PAGE_SIZE);
+ 
+-    gpio_map = (uint32_t *)mmap( (caddr_t)gpio_mem, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_FIXED, mem_fd, GPIO_BASE);
++    if (get_rpi_revision() <= 2  || number_of_cores() <= 2)
++       gpio_map = (uint32_t *)mmap( (caddr_t)gpio_mem, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_FIXED, mem_fd, BCM2708_GPIO_BASE);
++    else
++       gpio_map = (uint32_t *)mmap( (caddr_t)gpio_mem, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_FIXED, mem_fd, BCM2709_GPIO_BASE);
+ 
+     if ((uint32_t)gpio_map < 0)
+         return SETUP_MMAP_FAIL;
+@@ -327,3 +334,24 @@
+     // fixme - set all gpios back to input
+     munmap((caddr_t)gpio_map, BLOCK_SIZE);
+ }
++
++int number_of_cores(void)
++{
++char str[256];
++int procCount = 0;
++FILE *fp;
++
++if( (fp = fopen("/proc/cpuinfo", "r")) )
++{
++  while(fgets(str, sizeof str, fp))
++  if( !memcmp(str, "processor", 9) ) procCount++;
++}
++
++if ( !procCount ) 
++{ 
++printf("Unable to get proc count. Defaulting to 2");
++procCount=2;
++}
++
++return procCount;
++}
+diff -ur WebIOPi-0.7.1/python/webiopi/utils/version.py WebIOPi-Pi2/python/webiopi/utils/version.py
+--- WebIOPi-0.7.1/python/webiopi/utils/version.py	2015-02-05 05:21:44.000000000 +0900
++++ WebIOPi-Pi2/python/webiopi/utils/version.py	2015-06-26 15:53:20.262082357 +0900
+@@ -6,9 +6,10 @@
+ PYTHON_MAJOR    = sys.version_info.major
+ BOARD_REVISION  = 0
+ 
+-_MAPPING = [[], [], []]
++_MAPPING = [[], [], [], []]
+ _MAPPING[1] = ["V33", "V50", 0, "V50", 1, "GND", 4, 14, "GND", 15, 17, 18, 21, "GND", 22, 23, "V33", 24, 10, "GND", 9, 25, 11, 8, "GND", 7]
+ _MAPPING[2] = ["V33", "V50", 2, "V50", 3, "GND", 4, 14, "GND", 15, 17, 18, 27, "GND", 22, 23, "V33", 24, 10, "GND", 9, 25, 11, 8, "GND", 7]
++_MAPPING[3] = ["V33", "V50", 2, "V50", 3, "GND", 4, 14, "GND", 15, 17, 18, 27, "GND", 22, 23, "V33", 24, 10, "GND", 9, 25, 11, 8, "GND", 7, "DNC", "DNC" , 5, "GND", 6, 12, 13, "GND", 19, 16, 26, 20, "GND", 21]
+ 
+ 
+ try:
+@@ -21,8 +22,13 @@
+             if hex_cpurev.startswith("1000"):
+                 hex_cpurev = hex_cpurev[-4:]
+             cpurev = int(hex_cpurev, 16)
+-            BOARD_REVISION = 1 if (cpurev < 4) else 2
+-        
++            if cpurev < 4:
++              BOARD_REVISION = 1
++            elif cpurev < 7:
++              BOARD_REVISION = 2
++            else:
++              BOARD_REVISION = 3
++
+ except:
+     pass
+ 
