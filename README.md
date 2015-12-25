@@ -13,9 +13,9 @@ $ patch -p1 -i webiopi-pi2bplus.patch
 $ sudo ./setup.sh
 
 ### How to Start WebIOPi
-------
-Follow the steps below if Raspbian is installed by NOOBS later than 1.4.2.  
-------
+
+> Follow the steps below if Raspbian is installed by NOOBS later than 1.4.2.  
+
 $ cd /etc/systems/system/  
 $ sudo wget https://raw.githubusercontent.com/doublebind/raspi/master/webiopi.service  
 $ sudo systemctl start webiopi  
