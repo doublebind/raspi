@@ -16,7 +16,7 @@ $ sudo ./setup.sh
 
 > Follow the steps below if Raspbian is installed by NOOBS later than 1.4.2.  
 
-$ cd /etc/systems/system/  
+$ cd /etc/systemd/system/  
 $ sudo wget https://raw.githubusercontent.com/doublebind/raspi/master/webiopi.service  
 $ sudo systemctl start webiopi  
 $ sudo systemctl enable webiopi  
