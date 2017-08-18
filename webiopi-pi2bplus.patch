@@ -133,3 +133,28 @@ diff -ur WebIOPi-0.7.1/python/webiopi/utils/version.py WebIOPi-Pi2/python/webiop
  except:
      pass
  
+--- WebIOPi-0.7.1/python/webiopi/protocols/http.py	2014-02-22 07:31:18.000000000 +0900
++++ WebIOPi-Pi2/python/webiopi/protocols/http.py	2017-08-18 16:53:56.000000000 +0900
+@@ -198,9 +198,19 @@
+         f.close()
+         self.send_response(200)
+         self.send_header("Content-Type", contentType);
+-        self.send_header("Content-Length", os.path.getsize(realPath))
+-        self.end_headers()
+-        self.wfile.write(data)
++        try:
++            data.encode()
++            dataEncode = True
++        except AttributeError:
++            dataEncode = False
++        if dataEncode == True:
++            self.send_header("Content-Length", len(data.encode()))
++            self.end_headers()
++            self.wfile.write(data.encode())
++        else:
++            self.send_header("Content-Length", os.path.getsize(realPath))
++            self.end_headers()
++            self.wfile.write(data)
+         self.logRequest(200)
+         
+     def processRequest(self):
