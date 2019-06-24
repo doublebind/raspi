@@ -163,3 +163,22 @@ diff -ur WebIOPi-0.7.1/python/webiopi/utils/version.py WebIOPi-Pi2/python/webiop
          self.logRequest(200)
          
      def processRequest(self):
+--- WebIOPi-0.7.1/python/webiopi/utils/thread.py	2013-04-18 06:41:06.000000000 +0900
++++ WebIOPi-Pi2/python/webiopi/utils/thread.py	2019-06-25 00:48:56.953709736 +0900
+@@ -33,14 +33,14 @@
+             task.stop()
+                 
+ 
+-def runLoop(func=None, async=False):
++def runLoop(func=None, l_async=False):
+     global RUNNING
+     RUNNING = True
+     signal.signal(signal.SIGINT, stop)
+     signal.signal(signal.SIGTERM, stop)
+ 
+     if func != None:
+-        if async:
++        if l_async:
+             TASKS.append(Task(func, True))
+         else:
+             while RUNNING:
