@@ -73,12 +73,12 @@ diff -ur WebIOPi-0.7.1/python/native/gpio.c WebIOPi-Pi2/python/native/gpio.c
  #define FSEL_OFFSET         0   // 0x0000
  #define SET_OFFSET          7   // 0x001c / 4
  #define CLR_OFFSET          10  // 0x0028 / 4
-@@ -83,7 +83,27 @@
+@@ -83,7 +83,31 @@
      if ((uint32_t)gpio_mem % PAGE_SIZE)
          gpio_mem += PAGE_SIZE - ((uint32_t)gpio_mem % PAGE_SIZE);
  
 -    gpio_map = (uint32_t *)mmap( (caddr_t)gpio_mem, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_FIXED, mem_fd, GPIO_BASE);
-+    char buffer[8];
++    char buffer[12];
 +    const char *ranges_file = "/proc/device-tree/soc/ranges";
 +    int info_fd = open(ranges_file, O_RDONLY);
 +
@@ -90,13 +90,17 @@ diff -ur WebIOPi-0.7.1/python/native/gpio.c WebIOPi-Pi2/python/native/gpio.c
 +    ssize_t n = read(info_fd, buffer, sizeof(buffer));
 +    close(info_fd);
 +
-+    if (n != 8) {
++    if (n < 8) {
 +        fprintf(stderr, "cannot read base address: %s", ranges_file);
 +        return SETUP_MMAP_FAIL;
 +    }
 +
 +    uint32_t gpio_offset = 0x00200000;
 +    uint32_t gpio_base =  (buffer[4] << 24) + (buffer[5] << 16) + (buffer[6] << 8) + (buffer[7] << 0) + gpio_offset;
++
++    if (gpio_base == gpio_offset) {
++        gpio_base =  (buffer[8] << 24) + (buffer[9] << 16) + (buffer[10] << 8) + (buffer[11] << 0) + gpio_offset;
++    }
 +
 +    gpio_map = (uint32_t *)mmap( (caddr_t)gpio_mem, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_FIXED, mem_fd, gpio_base);
  
