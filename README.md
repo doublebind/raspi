@@ -1,4 +1,4 @@
-WebIOPi-0.7.1 Patch for Raspberry B+, Pi2, and Pi3
+WebIOPi-0.7.1 Patch for Raspberry B+, Pi2, Pi3, and Pi4
 =============================================
 
 You have full access to all header pins (40 pins) on the Web interface.
